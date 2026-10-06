@@ -165,5 +165,22 @@ def logout():
         "message": "logged out"
     }
 
+@app.get("/limited")
+def limited():
+
+    ip = request.remote_addr
+
+    key = f"rate:{ip}"
+
+    count = redis_client.incr(key)
+
+    if count == 1:
+        redis_client.expire(key, 60)
+
+    if count > 5:
+        return {"message": "Too many requests"}, 429
+
+    return {"message": "allowed"}
+
 if __name__ == "__main__":
     app.run(debug=True)
