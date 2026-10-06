@@ -193,5 +193,24 @@ redis_client.hset(
 
 print(redis_client.hgetall("user:1"))
 
+
+redis_client.zadd(
+    "leaderboard",
+    {
+        "Praveen": 500,
+        "John": 700,
+        "Alice": 300
+    }
+)
+
+top = redis_client.zrevrange(
+    "leaderboard",
+    0,
+    2,
+    withscores=True
+)
+
+print(top)
+
 if __name__ == "__main__":
     app.run(debug=True)
