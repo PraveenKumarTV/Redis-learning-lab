@@ -1,7 +1,9 @@
-from flask import Flask
-from redis_client import redis_client
-import time
+from flask import Flask, request
+import uuid
 import json
+import time
+
+from redis_client import redis_client
 
 app = Flask(__name__)
 
@@ -20,6 +22,19 @@ products = [
         "id": 3,
         "name": "Keyboard",
         "price": 1000
+    }
+]
+
+users = [
+    {
+        "id": 1,
+        "username": "praveen",
+        "password": "123"
+    },
+    {
+        "id": 2,
+        "username": "john",
+        "password": "456"
     }
 ]
 
@@ -60,6 +75,95 @@ def get_product(product_id):
             return product
 
     return {"error": "Product not found"}, 404
-    
+
+@app.put("/products/<int:product_id>")
+def update_product(product_id):
+
+    for product in products:
+
+        if product["id"] == product_id:
+
+            product["price"] = 99999
+
+            return {
+                "message": "updated",
+                "product": product
+            }
+
+    return {"error": "not found"}, 404
+
+
+@app.post("/login")
+def login():
+
+    data = request.json
+
+    username = data["username"]
+    password = data["password"]
+
+    for user in users:
+
+        if (
+            user["username"] == username
+            and user["password"] == password
+        ):
+
+            session_id = str(uuid.uuid4())
+
+            redis_client.setex(
+                f"session:{session_id}",
+                3600,
+                json.dumps(user)
+            )
+
+            return {
+                "message": "login successful",
+                "session_id": session_id
+            }
+
+    return {
+        "message": "invalid credentials"
+    }, 401
+
+@app.get("/profile")
+def profile():
+
+    session_id = request.headers.get(
+        "Session-Id"
+    )
+
+    if not session_id:
+
+        return {
+            "message": "session missing"
+        }, 401
+
+    user = redis_client.get(
+        f"session:{session_id}"
+    )
+
+    if not user:
+
+        return {
+            "message": "invalid session"
+        }, 401
+
+    return json.loads(user)
+
+@app.post("/logout")
+def logout():
+
+    session_id = request.headers.get(
+        "Session-Id"
+    )
+
+    redis_client.delete(
+        f"session:{session_id}"
+    )
+
+    return {
+        "message": "logged out"
+    }
+
 if __name__ == "__main__":
     app.run(debug=True)
