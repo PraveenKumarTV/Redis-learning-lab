@@ -182,5 +182,16 @@ def limited():
 
     return {"message": "allowed"}
 
+redis_client.hset(
+    "user:1",
+    mapping={
+        "name": "Praveen",
+        "role": "Admin",
+        "city": "Chennai"
+    }
+)
+
+print(redis_client.hgetall("user:1"))
+
 if __name__ == "__main__":
     app.run(debug=True)
